@@ -39,6 +39,67 @@ export function idealBranch(branches: FlowBranch[]): FlowBranch {
   return branches.find((b) => b.ideal) ?? branches[0];
 }
 
+// ── Flattened chain (shared by the chain panel and the click-through planner) ──
+
+// One entry in a flow's rendered chain. A screen node becomes a `screen` item; a
+// sub-flow reference becomes a `subflow` item (drilled into, never expanded here).
+export type ChainItem =
+  | { kind: "screen"; key: string; screenId: string; branches?: FlowBranch[] }
+  | { kind: "subflow"; key: string; flowId: string };
+
+/**
+ * Walk a flow's nodes into a flat chain, following the chosen branch at every
+ * decision point. `branchSel` maps a chain key to the picked branch id; where it
+ * is missing the ideal branch is used. Keys are structural, so the same nodes +
+ * selection always yield the same keys — that's what lets the preview and the
+ * panel agree on "where am I / what's next".
+ */
+export function buildChain(
+  nodes: FlowNode[],
+  branchSel: Record<string, string>,
+  prefix = "",
+): ChainItem[] {
+  const out: ChainItem[] = [];
+  nodes.forEach((node, i) => {
+    const key = `${prefix}n${i}`;
+    if (node.kind === "flow") {
+      out.push({ kind: "subflow", key, flowId: node.id });
+      return;
+    }
+    out.push({ kind: "screen", key, screenId: node.id, branches: node.branches });
+    if (node.branches?.length) {
+      const chosenId = branchSel[key] ?? idealBranch(node.branches).id;
+      const branch = node.branches.find((b) => b.id === chosenId) ?? idealBranch(node.branches);
+      out.push(...buildChain(branch.nodes, branchSel, `${key}.${branch.id}.`));
+    }
+  });
+  return out;
+}
+
+/** Whether `screenId` is reachable anywhere inside a flow (any branch, nested). */
+export function flowContainsScreen(
+  flowId: string,
+  screenId: string,
+  seen: Set<string> = new Set(),
+): boolean {
+  if (seen.has(flowId)) return false;
+  seen.add(flowId);
+  const flow = FLOWS[flowId];
+  return flow ? nodesContainScreen(flow.nodes, screenId, seen) : false;
+}
+
+function nodesContainScreen(nodes: FlowNode[], screenId: string, seen: Set<string>): boolean {
+  for (const node of nodes) {
+    if (node.kind === "flow") {
+      if (flowContainsScreen(node.id, screenId, seen)) return true;
+      continue;
+    }
+    if (node.id === screenId) return true;
+    if (node.branches?.some((b) => nodesContainScreen(b.nodes, screenId, seen))) return true;
+  }
+  return false;
+}
+
 export const FLOWS: Record<string, Flow> = {
   onboarding: {
     id: "onboarding",

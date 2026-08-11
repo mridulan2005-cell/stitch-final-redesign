@@ -23,7 +23,10 @@ interface Props {
   /** Canvas transform, so screen positions can be derived from canvas coords. */
   pan: { x: number; y: number };
   scale: number;
+  /** Areas selected but not yet described. */
   areas: Area[];
+  /** Already-described changes — their boxes stay pinned to the canvas. */
+  changes: Change[];
   /** Draft rectangle being dragged out right now, in canvas coords. */
   draft: { x: number; y: number; w: number; h: number } | null;
   /** Shown next to a lone selection until a second area is added. */
@@ -39,7 +42,7 @@ interface Props {
 // ── Layer ────────────────────────────────────────────────────────────────────
 
 export function AnnotationLayer({
-  pan, scale, areas, draft, showInlineInput, onDescribe, onRemoveArea,
+  pan, scale, areas, changes, draft, showInlineInput, onDescribe, onRemoveArea,
   changeCount, onExitAnnotate, onApplyAll,
 }: Props) {
   const [value, setValue] = useState("");
@@ -95,7 +98,38 @@ export function AnnotationLayer({
         )}
       </div>
 
-      {/* Committed areas */}
+      {/* Described changes — these stay pinned to the canvas for the rest of
+          the session, so every area you've marked up remains visible. They
+          only disappear when the change is deleted from the left panel. */}
+      {changes.map((c, ci) =>
+        c.areas.map((a) => {
+          const p = toScreen(a.x, a.y);
+          return (
+            <div
+              key={a.id}
+              className="absolute group"
+              style={{ left: p.x, top: p.y, width: a.w * scale, height: a.h * scale }}
+            >
+              <div className="absolute inset-0 rounded-[8px] border-2 border-[#7168f6] bg-[rgba(113,104,246,0.1)]" />
+              {/* Number badge, with the change it belongs to */}
+              <div className="absolute -top-[11px] -right-[11px] flex items-center justify-center size-[22px] rounded-full bg-[#7168f6] shadow-[0px_2px_6px_rgba(0,0,0,0.4)]">
+                <span className="text-white text-[11px] font-bold leading-none">{a.n}</span>
+              </div>
+              {/* The description, on hover */}
+              <div className="absolute -top-[9px] left-0 -translate-y-full opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                <div className="max-w-[240px] px-[9px] py-[5px] rounded-[8px] bg-[#0d0e0f] border border-[rgba(255,255,255,0.12)] shadow-[0px_4px_14px_rgba(0,0,0,0.5)]">
+                  <span className="block text-[11px] leading-[15px] text-[#f1f3f4] line-clamp-2">
+                    <span className="text-[rgba(255,255,255,0.4)]">{ci + 1}. </span>
+                    {c.text}
+                  </span>
+                </div>
+              </div>
+            </div>
+          );
+        }),
+      )}
+
+      {/* Pending areas — selected, not yet described */}
       {areas.map((a) => {
         const p = toScreen(a.x, a.y);
         const w = a.w * scale;

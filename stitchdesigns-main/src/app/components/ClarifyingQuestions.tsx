@@ -116,9 +116,11 @@ export function ClarifyingQuestions({
           : "translate-y-[30px] opacity-0 pointer-events-none"
       }`}
     >
-      <div className="w-full bg-[#28292d] border border-[rgba(255,255,255,0.08)] rounded-[16px] shadow-[0px_8px_32px_rgba(0,0,0,0.5)] overflow-hidden">
+      {/* Same glass material as the agent log and the prompt bar — blur, fill,
+          border, radius and shadow all match, so the three read as one surface. */}
+      <div className="w-full backdrop-blur-[20px] bg-[rgba(22,23,24,0.5)] border border-[rgba(218,220,224,0.15)] rounded-[16px] shadow-[0px_10px_15px_-3px_rgba(0,0,0,0.1),0px_4px_6px_-4px_rgba(0,0,0,0.1)] overflow-hidden">
         {/* Header ─ title + Skip + Next/Submit */}
-        <div className="flex items-center justify-between gap-[12px] px-[16px] pt-[14px] pb-[12px] border-b border-[rgba(255,255,255,0.06)]">
+        <div className="flex items-center justify-between gap-[12px] px-[16px] pt-[14px] pb-[12px] border-b border-[rgba(218,220,224,0.15)]">
           <p className="text-[rgba(255,255,255,0.55)] text-[13px] leading-[18px] min-w-0">
             A few quick questions so we design exactly what you want
           </p>
@@ -201,8 +203,8 @@ export function ClarifyingQuestions({
                           onChange={(e) => typeCustom(q.id, e.target.value)}
                           onFocus={() => selectCustom(q.id)}
                           placeholder="Type your own…"
-                          className={`flex-1 h-[40px] px-[14px] rounded-[10px] bg-[rgba(255,255,255,0.05)] border text-[#f1f3f4] text-[14px] placeholder-[#6b6e75] outline-none transition-colors ${
-                            isCustom ? "border-[rgba(113,104,246,0.6)]" : "border-[rgba(255,255,255,0.1)] focus:border-[rgba(255,255,255,0.2)]"
+                          className={`flex-1 h-[40px] px-[14px] rounded-[10px] bg-[rgba(255,255,255,0.03)] border text-[#f1f3f4] text-[14px] placeholder-[#6b6e75] outline-none transition-colors ${
+                            isCustom ? "border-[rgba(113,104,246,0.6)]" : "border-[rgba(218,220,224,0.18)] focus:border-[rgba(218,220,224,0.32)]"
                           }`}
                         />
                       </div>
@@ -216,7 +218,7 @@ export function ClarifyingQuestions({
 
         {/* Footer ─ progress dots (+ Back when paginated) */}
         {totalPages > 1 && (
-          <div className="relative h-[42px] flex items-center justify-center border-t border-[rgba(255,255,255,0.06)]">
+          <div className="relative h-[42px] flex items-center justify-center border-t border-[rgba(218,220,224,0.15)]">
             {page > 0 && (
               <button
                 onClick={() => setPage((p) => p - 1)}

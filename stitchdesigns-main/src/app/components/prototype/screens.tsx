@@ -87,6 +87,9 @@ function PrimaryButton({ label, tone = "dark" }: { label: string; tone?: "dark" 
   return (
     <div
       data-hotspot={label}
+      // The screen's primary CTA is what carries the flow forward, so a tap on it
+      // steps the prototype rather than asking the agent to map it.
+      data-advance="true"
       className="rounded-[10px] py-[12px] flex items-center justify-center w-full"
       style={{ background: tone === "dark" ? INK : ACCENT }}
     >
@@ -160,6 +163,8 @@ export interface ScreenDef {
   id: string;
   name: string;
   render: () => ReactNode;
+  /** True for screens the agent created at runtime (badged in the UI). */
+  generated?: boolean;
 }
 
 const list: ScreenDef[] = [
@@ -714,4 +719,74 @@ export const SCREENS: Record<string, ScreenDef> = Object.fromEntries(
 
 export function getScreen(id: string): ScreenDef | undefined {
   return SCREENS[id];
+}
+
+// ── Agent-generated screens ──────────────────────────────────────────────────
+
+/**
+ * Builds a screen from the agent's suggestion. The layout is inferred from a few
+ * keywords in the description, so "with category filters" actually produces a
+ * filter row — the generated screen reads as a real design rather than a
+ * placeholder, while staying in the Financely design language above.
+ */
+export function createGeneratedScreen(id: string, name: string, description: string): ScreenDef {
+  const d = description.toLowerCase();
+  const withFilters = /filter|categor|sort|tab\b/.test(d);
+  const withSaved = /saved|favourite|favorite|bookmark|wishlist/.test(d);
+  const withSearch = /search|find|query/.test(d);
+
+  const items = withSaved
+    ? [
+        { title: "Golden Hour Roasts", sub: "Saved · Light roast" },
+        { title: "The Daily Grind", sub: "Saved · Medium roast" },
+        { title: "Ember & Oak", sub: "Saved · Dark roast" },
+      ]
+    : [
+        { title: "First item", sub: "Updated just now" },
+        { title: "Second item", sub: "Updated yesterday" },
+        { title: "Third item", sub: "Updated Sep 12" },
+      ];
+
+  return {
+    id,
+    name,
+    generated: true,
+    render: () => (
+      <div className="flex flex-col h-full">
+        <AppBar title={name} />
+        <Page>
+          {withSearch && (
+            <div className="rounded-[10px] border px-[12px] py-[11px]" style={{ background: "#fff", borderColor: LINE }}>
+              <span className="text-[13px]" style={{ color: "#9aa0a6" }}>Search…</span>
+            </div>
+          )}
+
+          {withFilters && (
+            <div className="flex gap-[8px]">
+              {["All", "Recent", "Category"].map((f, i) => (
+                <div
+                  key={f}
+                  data-hotspot={f}
+                  className="px-[14px] py-[7px] rounded-[8px]"
+                  style={i === 0 ? { background: INK } : { background: "#e9edf0" }}
+                >
+                  <span className="text-[11px] font-semibold" style={{ color: i === 0 ? "#fff" : MUTED }}>{f}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <Card className="!py-[4px]">
+            {items.map((it) => (
+              <Row key={it.title} title={it.title} sub={it.sub} amount={withSaved ? "♥" : "›"} tone={ACCENT} />
+            ))}
+          </Card>
+
+          <span className="text-[11px] leading-[16px]" style={{ color: MUTED }}>{description}</span>
+
+          <div className="mt-auto"><PrimaryButton label="Done" /></div>
+        </Page>
+      </div>
+    ),
+  };
 }
